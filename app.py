@@ -8,7 +8,7 @@ import io
 st.set_page_config(page_title="Směny do kalendáře", page_icon="📅")
 
 st.title("📅 Převodník směn (Excel/Numbers -> .ics)")
-st.info("Nahrajte rozpis. Skript vytvoří události jen pro buňky s časem (např. 9:00). Texty jako 'VOLNO' nebo 'DOVOLENÁ' přeskočí.")
+st.info("Nahrajte rozpis.")
 
 # --- DATABÁZE ZKRATEK (v paměti prohlížeče) ---
 if 'employee_map' not in st.session_state:
