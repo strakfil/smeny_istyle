@@ -22,7 +22,6 @@ if 'employee_map' not in st.session_state:
     }
 
 def normalize_time(val):
-    """Převede buňku na časový objekt, ignoruje texty a neplatné formáty."""
     if pd.isna(val) or val == "" or val is None: 
         return None
     if isinstance(val, time): 
@@ -30,12 +29,10 @@ def normalize_time(val):
     if isinstance(val, datetime): 
         return val.time()
     
-    # Převod na řetězec a základní pročištění
     val_str = str(val).strip().replace('.', ':')
     if ":" not in val_str: 
         return None
     
-    # Zkouška běžných formátů času
     for fmt in ["%H:%M", "%H:%M:%S"]:
         try:
             return datetime.strptime(val_str, fmt).time()
@@ -50,21 +47,20 @@ if uploaded_file:
     df = pd.DataFrame()
     
     try:
-        # Logika pro Apple Numbers
         if uploaded_file.name.endswith('.numbers'):
-            file_contents = uploaded_file.read()
-            doc = Document(io.BytesIO(file_contents))
+            # OPRAVA: Přečtení bajtů a inicializace Document přímo z nich
+            file_bytes = uploaded_file.getvalue()
+            doc = Document(io.BytesIO(file_bytes))
+            
             # Načtení první tabulky z prvního listu
             table = doc.sheets()[0].tables()[0]
             data = table.rows(values_only=True)
             df = pd.DataFrame(data)
             
-            # Nastavení prvního řádku jako záhlaví (jména)
+            # Nastavení záhlaví
             if not df.empty:
                 df.columns = [str(c) if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[0])]
                 df = df[1:].reset_index(drop=True)
-        
-        # Logika pro Excel
         else:
             df = pd.read_excel(uploaded_file)
             
@@ -74,16 +70,13 @@ if uploaded_file:
 
     # --- ZPRACOVÁNÍ DAT ---
     if not df.empty:
-        # Identifikace sloupců se jmény (přeskakujeme datum v indexu 0)
         relevant_columns = []
         for i, col_name in enumerate(df.columns):
             name_str = str(col_name).strip()
-            # Ignorujeme sloupec s datem (první) a systémové/prázdné sloupce
             if i == 0 or "Unnamed" in name_str or "Empty_" in name_str or name_str.lower() == "none" or name_str == "":
                 continue
             relevant_columns.append((i, name_str))
 
-        # Správa zkratek (zobrazí se jen u nových jmen)
         with st.expander("👤 Správa zkratek"):
             for _, full_name in relevant_columns:
                 name_key = full_name.upper()
@@ -94,7 +87,6 @@ if uploaded_file:
                 else:
                     st.text(f"✅ {full_name} -> {st.session_state.employee_map[name_key]}")
 
-        # Tlačítko pro generování ICS
         if st.button("🚀 Vygenerovat .ics kalendář"):
             ics_lines = [
                 "BEGIN:VCALENDAR",
@@ -105,7 +97,7 @@ if uploaded_file:
             
             count_events = 0
             for index, row in df.iterrows():
-                # První sloupec musí být datum
+                # Datum je v prvním sloupci
                 raw_date = row.iloc[0]
                 date_val = pd.to_datetime(raw_date, errors='coerce')
                 if pd.isna(date_val): 
@@ -117,7 +109,6 @@ if uploaded_file:
                     if name_key in st.session_state.employee_map:
                         abbr = st.session_state.employee_map[name_key]
                         
-                        # Čas startu (aktuální sloupec) a konce (další sloupec)
                         t_start = normalize_time(row.iloc[col_idx])
                         t_end = normalize_time(row.iloc[col_idx + 1]) if (col_idx + 1) < len(row) else None
 
@@ -149,4 +140,4 @@ if uploaded_file:
                     mime="text/calendar"
                 )
             else:
-                st.warning("V souboru nebyly nalezeny žádné směny s platným časem.")
+                st.warning("V souboru nebyly nalezeny žádné platné směny.")
