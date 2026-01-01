@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime, time
 from numbers_parser import Document
 import io
+import tempfile
+import os
 
 # --- NASTAVENÍ STRÁNKY ---
 st.set_page_config(page_title="Směny do kalendáře", page_icon="📅")
@@ -48,16 +50,20 @@ if uploaded_file:
     
     try:
         if uploaded_file.name.endswith('.numbers'):
-            # OPRAVA: Přečtení bajtů a inicializace Document přímo z nich
-            file_bytes = uploaded_file.getvalue()
-            doc = Document(io.BytesIO(file_bytes))
+            # OPRAVA: Vytvoření dočasného souboru na disku
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".numbers") as tmp:
+                tmp.write(uploaded_file.getvalue())
+                tmp_path = tmp.name
             
-            # Načtení první tabulky z prvního listu
+            # Načtení z cesty na disku
+            doc = Document(tmp_path)
             table = doc.sheets()[0].tables()[0]
             data = table.rows(values_only=True)
             df = pd.DataFrame(data)
             
-            # Nastavení záhlaví
+            # Smazání dočasného souboru po načtení
+            os.unlink(tmp_path)
+            
             if not df.empty:
                 df.columns = [str(c) if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[0])]
                 df = df[1:].reset_index(drop=True)
@@ -97,7 +103,6 @@ if uploaded_file:
             
             count_events = 0
             for index, row in df.iterrows():
-                # Datum je v prvním sloupci
                 raw_date = row.iloc[0]
                 date_val = pd.to_datetime(raw_date, errors='coerce')
                 if pd.isna(date_val): 
@@ -139,5 +144,3 @@ if uploaded_file:
                     file_name=f"export_smen.ics",
                     mime="text/calendar"
                 )
-            else:
-                st.warning("V souboru nebyly nalezeny žádné platné směny.")
