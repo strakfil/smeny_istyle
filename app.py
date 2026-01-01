@@ -50,18 +50,23 @@ if uploaded_file:
     
     try:
         if uploaded_file.name.endswith('.numbers'):
-            # OPRAVA: Vytvoření dočasného souboru na disku
+            # Uložení do dočasného souboru
             with tempfile.NamedTemporaryFile(delete=False, suffix=".numbers") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 tmp_path = tmp.name
             
-            # Načtení z cesty na disku
+            # Načtení dokumentu
             doc = Document(tmp_path)
-            table = doc.sheets()[0].tables()[0]
+            
+            # OPRAVA: Přístup k listům a tabulkám bez závorek (verze 4.x+)
+            sheet = doc.sheets[0]
+            table = sheet.tables[0]
+            
+            # Načtení dat (zde rows stále funguje jako metoda nebo iterátor)
             data = table.rows(values_only=True)
             df = pd.DataFrame(data)
             
-            # Smazání dočasného souboru po načtení
+            # Úklid
             os.unlink(tmp_path)
             
             if not df.empty:
