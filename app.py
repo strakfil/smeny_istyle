@@ -62,7 +62,6 @@ if uploaded_file:
             os.unlink(tmp_path)
             
             if not df.empty:
-                # Ošetření duplicitních nebo prázdných názvů sloupců
                 new_cols = []
                 for i, c in enumerate(df.iloc[0]):
                     val = str(c).strip() if c is not None else f"Empty_{i}"
@@ -72,29 +71,36 @@ if uploaded_file:
         else:
             df = pd.read_excel(uploaded_file)
             
-        st.success(f"Soubor '{uploaded_file.name}' byl úspěšně načten.")
+        st.success(f"Soubor '{uploaded_file.name}' načten.")
     except Exception as e:
         st.error(f"Chyba při čtení souboru: {e}")
 
-    # --- ZPRACOVÁNÍ DAT ---
+    # --- FILTRACE RELEVANTNÍCH SLOUPCŮ ---
     if not df.empty:
         relevant_columns = []
         for i, col_name in enumerate(df.columns):
             name_str = str(col_name).strip()
-            # Datum je vždy v prvním sloupci (index 0)
-            if i == 0 or "Unnamed" in name_str or "Empty_" in name_str or name_str.lower() == "none" or name_str == "":
+            # Ignorujeme:
+            # 1. První sloupec (Datum)
+            # 2. Prázdné hodnoty (NaN, None, "nan")
+            # 3. Systémové názvy (Unnamed, Empty)
+            # 4. Pomocné texty (SMĚNY)
+            if i == 0: continue
+            if name_str.lower() in ["none", "nan", ""] or "unnamed" in name_str.lower() or "empty_" in name_str.lower() or "směny" in name_str.upper():
                 continue
+            
             relevant_columns.append((i, name_str))
 
-        # Správa zkratek
+        # Správa zkratek - teď už jen pro skutečná jména
         with st.expander("👤 Správa zkratek"):
             for col_idx, full_name in relevant_columns:
                 name_key = full_name.upper()
                 if name_key not in st.session_state.employee_map:
-                    # OPRAVA: unikátní klíč pomocí indexu sloupce (key=f"input_{col_idx}")
+                    # Používáme kombinaci jména a indexu pro 100% unikátní klíč
+                    safe_key = f"input_{name_key.replace(' ', '_')}_{col_idx}"
                     new_abbr = st.text_input(
                         f"Zadejte zkratku pro: {full_name}", 
-                        key=f"input_{col_idx}"
+                        key=safe_key
                     ).strip().upper()
                     if new_abbr:
                         st.session_state.employee_map[name_key] = new_abbr
@@ -102,19 +108,13 @@ if uploaded_file:
                     st.text(f"✅ {full_name} -> {st.session_state.employee_map[name_key]}")
 
         if st.button("🚀 Vygenerovat .ics kalendář"):
-            ics_lines = [
-                "BEGIN:VCALENDAR",
-                "VERSION:2.0",
-                "PRODID:-//Rozpis Smen//CZ",
-                "METHOD:PUBLISH"
-            ]
-            
+            ics_lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Rozpis Smen//CZ", "METHOD:PUBLISH"]
             count_events = 0
+            
             for index, row in df.iterrows():
                 raw_date = row.iloc[0]
                 date_val = pd.to_datetime(raw_date, errors='coerce')
-                if pd.isna(date_val): 
-                    continue
+                if pd.isna(date_val): continue
                 current_date = date_val.date()
 
                 for col_idx, full_name in relevant_columns:
@@ -145,10 +145,5 @@ if uploaded_file:
             ics_string = "\n".join(ics_lines)
 
             if count_events > 0:
-                st.success(f"Úspěšně vytvořeno {count_events} událostí.")
-                st.download_button(
-                    label="📥 Stáhnout kalendář",
-                    data=ics_string,
-                    file_name=f"export_smen.ics",
-                    mime="text/calendar"
-                )
+                st.success(f"Vytvořeno {count_events} událostí.")
+                st.download_button(label="📥 Stáhnout kalendář", data=ics_string, file_name=f"export_smen.ics", mime="text/calendar")
