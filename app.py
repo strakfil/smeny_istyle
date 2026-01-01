@@ -6,12 +6,10 @@ import io
 import tempfile
 import os
 
-# --- NASTAVENÍ STRÁNKY ---
+# --- NASTAVENÍ ---
 st.set_page_config(page_title="Směny do kalendáře", page_icon="📅")
-
 st.title("📅 Převodník směn")
 
-# --- DATABÁZE ZKRATEK ---
 if 'employee_map' not in st.session_state:
     st.session_state.employee_map = {
         "MAREK STRAKA FT": "MST",
@@ -24,126 +22,85 @@ if 'employee_map' not in st.session_state:
     }
 
 def normalize_time(val):
-    if pd.isna(val) or val == "" or val is None: 
-        return None
-    if isinstance(val, time): 
-        return val
-    if isinstance(val, datetime): 
-        return val.time()
-    
+    if pd.isna(val) or val == "" or val is None: return None
+    if isinstance(val, time): return val
+    if isinstance(val, datetime): return val.time()
     val_str = str(val).strip().replace('.', ':')
-    if ":" not in val_str: 
-        return None
-    
+    if ":" not in val_str: return None
     for fmt in ["%H:%M", "%H:%M:%S"]:
-        try:
-            return datetime.strptime(val_str, fmt).time()
-        except ValueError:
-            continue
+        try: return datetime.strptime(val_str, fmt).time()
+        except ValueError: continue
     return None
 
-# --- NAHRÁNÍ SOUBORU ---
-uploaded_file = st.file_uploader("Vyberte soubor rozpisu (.xlsx nebo .numbers)", type=["xlsx", "numbers"])
+uploaded_file = st.file_uploader("Vyberte soubor rozpisu", type=["xlsx", "numbers"])
 
 if uploaded_file:
     df = pd.DataFrame()
-    
     try:
         if uploaded_file.name.endswith('.numbers'):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".numbers") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 tmp_path = tmp.name
-            
             doc = Document(tmp_path)
-            sheet = doc.sheets[0]
-            table = sheet.tables[0]
+            table = doc.sheets[0].tables[0]
             data = table.rows(values_only=True)
             df = pd.DataFrame(data)
             os.unlink(tmp_path)
-            
             if not df.empty:
-                new_cols = []
-                for i, c in enumerate(df.iloc[0]):
-                    val = str(c).strip() if c is not None else f"Empty_{i}"
-                    new_cols.append(val)
-                df.columns = new_cols
+                # Vyčištění názvů sloupců a odstranění prázdných hodnot
+                df.columns = [str(c).strip() if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[0])]
                 df = df[1:].reset_index(drop=True)
         else:
             df = pd.read_excel(uploaded_file)
-            
-        st.success(f"Soubor '{uploaded_file.name}' načten.")
+        st.success("Soubor načten.")
     except Exception as e:
-        st.error(f"Chyba při čtení souboru: {e}")
+        st.error(f"Chyba při čtení: {e}")
 
-    # --- FILTRACE RELEVANTNÍCH SLOUPCŮ ---
     if not df.empty:
         relevant_columns = []
+        mesice = ["LEDEN", "ÚNOR", "BŘEZEN", "DUBEN", "KVĚTEN", "ČERVEN", "ČERVENEC", "SRPEN", "ZÁŘÍ", "ŘÍJEN", "LISTOPAD", "PROSINEC"]
+        
         for i, col_name in enumerate(df.columns):
             name_str = str(col_name).strip()
-            # Ignorujeme:
-            # 1. První sloupec (Datum)
-            # 2. Prázdné hodnoty (NaN, None, "nan")
-            # 3. Systémové názvy (Unnamed, Empty)
-            # 4. Pomocné texty (SMĚNY)
+            name_upper = name_str.upper()
+            
+            # FILTRACE: Přeskoč datum, prázdné sloupce, titulky a dlouhé texty
             if i == 0: continue
-            if name_str.lower() in ["none", "nan", ""] or "unnamed" in name_str.lower() or "empty_" in name_str.lower() or "směny" in name_str.upper():
-                continue
+            if any(m in name_upper for m in mesice): continue
+            if "SMĚNY" in name_upper or "TABULKA" in name_upper: continue
+            if "EMPTY_" in name_upper or "UNNAMED" in name_upper or name_upper == "NAN" or name_upper == "NONE": continue
+            if len(name_str) > 25: continue # Jméno s FT by nemělo být delší než 25 znaků
             
             relevant_columns.append((i, name_str))
 
-        # Správa zkratek - teď už jen pro skutečná jména
         with st.expander("👤 Správa zkratek"):
             for col_idx, full_name in relevant_columns:
                 name_key = full_name.upper()
                 if name_key not in st.session_state.employee_map:
-                    # Používáme kombinaci jména a indexu pro 100% unikátní klíč
-                    safe_key = f"input_{name_key.replace(' ', '_')}_{col_idx}"
-                    new_abbr = st.text_input(
-                        f"Zadejte zkratku pro: {full_name}", 
-                        key=safe_key
-                    ).strip().upper()
+                    safe_key = f"input_{col_idx}"
+                    new_abbr = st.text_input(f"Zkratka pro: {full_name}", key=safe_key).strip().upper()
                     if new_abbr:
                         st.session_state.employee_map[name_key] = new_abbr
                 else:
                     st.text(f"✅ {full_name} -> {st.session_state.employee_map[name_key]}")
 
-        if st.button("🚀 Vygenerovat .ics kalendář"):
-            ics_lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Rozpis Smen//CZ", "METHOD:PUBLISH"]
-            count_events = 0
-            
+        if st.button("🚀 Vygenerovat .ics"):
+            ics_lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//iStyle Rozpis//CZ", "METHOD:PUBLISH"]
+            count = 0
             for index, row in df.iterrows():
-                raw_date = row.iloc[0]
-                date_val = pd.to_datetime(raw_date, errors='coerce')
-                if pd.isna(date_val): continue
-                current_date = date_val.date()
-
+                dt_val = pd.to_datetime(row.iloc[0], errors='coerce')
+                if pd.isna(dt_val): continue
+                curr_date = dt_val.date()
                 for col_idx, full_name in relevant_columns:
-                    name_key = full_name.upper()
-                    if name_key in st.session_state.employee_map:
-                        abbr = st.session_state.employee_map[name_key]
-                        
-                        t_start = normalize_time(row.iloc[col_idx])
-                        t_end = normalize_time(row.iloc[col_idx + 1]) if (col_idx + 1) < len(row) else None
-
-                        if t_start and t_end:
-                            dt_start = datetime.combine(current_date, t_start)
-                            dt_end = datetime.combine(current_date, t_end)
-                            fmt = "%Y%m%dT%H%M00"
-                            
-                            event = [
-                                "BEGIN:VEVENT",
-                                f"DTSTART:{dt_start.strftime(fmt)}",
-                                f"DTEND:{dt_end.strftime(fmt)}",
-                                f"SUMMARY:{abbr}",
-                                f"UID:{dt_start.strftime(fmt)}-{abbr}-{col_idx}@smeny",
-                                "END:VEVENT"
-                            ]
-                            ics_lines.extend(event)
-                            count_events += 1
-
+                    abbr = st.session_state.employee_map.get(full_name.upper())
+                    if abbr:
+                        t_s = normalize_time(row.iloc[col_idx])
+                        t_e = normalize_time(row.iloc[col_idx+1]) if (col_idx+1) < len(row) else None
+                        if t_s and t_e:
+                            start = datetime.combine(curr_date, t_s).strftime("%Y%m%dT%H%M00")
+                            end = datetime.combine(curr_date, t_e).strftime("%Y%m%dT%H%M00")
+                            ics_lines.extend(["BEGIN:VEVENT", f"DTSTART:{start}", f"DTEND:{end}", f"SUMMARY:{abbr}", f"UID:{start}-{abbr}@istyle", "END:VEVENT"])
+                            count += 1
             ics_lines.append("END:VCALENDAR")
-            ics_string = "\n".join(ics_lines)
-
-            if count_events > 0:
-                st.success(f"Vytvořeno {count_events} událostí.")
-                st.download_button(label="📥 Stáhnout kalendář", data=ics_string, file_name=f"export_smen.ics", mime="text/calendar")
+            if count > 0:
+                st.download_button("📥 Stáhnout kalendář", "\n".join(ics_lines), "smeny.ics", "text/calendar")
