@@ -50,27 +50,24 @@ if uploaded_file:
     
     try:
         if uploaded_file.name.endswith('.numbers'):
-            # Uložení do dočasného souboru
             with tempfile.NamedTemporaryFile(delete=False, suffix=".numbers") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 tmp_path = tmp.name
             
-            # Načtení dokumentu
             doc = Document(tmp_path)
-            
-            # OPRAVA: Přístup k listům a tabulkám bez závorek (verze 4.x+)
             sheet = doc.sheets[0]
             table = sheet.tables[0]
-            
-            # Načtení dat (zde rows stále funguje jako metoda nebo iterátor)
             data = table.rows(values_only=True)
             df = pd.DataFrame(data)
-            
-            # Úklid
             os.unlink(tmp_path)
             
             if not df.empty:
-                df.columns = [str(c) if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[0])]
+                # Ošetření duplicitních nebo prázdných názvů sloupců
+                new_cols = []
+                for i, c in enumerate(df.iloc[0]):
+                    val = str(c).strip() if c is not None else f"Empty_{i}"
+                    new_cols.append(val)
+                df.columns = new_cols
                 df = df[1:].reset_index(drop=True)
         else:
             df = pd.read_excel(uploaded_file)
@@ -84,15 +81,21 @@ if uploaded_file:
         relevant_columns = []
         for i, col_name in enumerate(df.columns):
             name_str = str(col_name).strip()
+            # Datum je vždy v prvním sloupci (index 0)
             if i == 0 or "Unnamed" in name_str or "Empty_" in name_str or name_str.lower() == "none" or name_str == "":
                 continue
             relevant_columns.append((i, name_str))
 
+        # Správa zkratek
         with st.expander("👤 Správa zkratek"):
-            for _, full_name in relevant_columns:
+            for col_idx, full_name in relevant_columns:
                 name_key = full_name.upper()
                 if name_key not in st.session_state.employee_map:
-                    new_abbr = st.text_input(f"Zadejte zkratku pro: {full_name}", key=name_key).strip().upper()
+                    # OPRAVA: unikátní klíč pomocí indexu sloupce (key=f"input_{col_idx}")
+                    new_abbr = st.text_input(
+                        f"Zadejte zkratku pro: {full_name}", 
+                        key=f"input_{col_idx}"
+                    ).strip().upper()
                     if new_abbr:
                         st.session_state.employee_map[name_key] = new_abbr
                 else:
@@ -132,7 +135,7 @@ if uploaded_file:
                                 f"DTSTART:{dt_start.strftime(fmt)}",
                                 f"DTEND:{dt_end.strftime(fmt)}",
                                 f"SUMMARY:{abbr}",
-                                f"UID:{dt_start.strftime(fmt)}-{abbr}@smeny",
+                                f"UID:{dt_start.strftime(fmt)}-{abbr}-{col_idx}@smeny",
                                 "END:VEVENT"
                             ]
                             ics_lines.extend(event)
