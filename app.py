@@ -25,7 +25,7 @@ if 'employee_map' not in st.session_state:
         "ELIŠKA DESÁKOVÁ FT": "EDE", "JAN BIŠKO FT": "JB2", "FILIP STRAKA FT": "FIS",
         "MARIÁN DEBNÁR PT": "MDE", "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO",
         "KRIŠTOF KLUBICA FT": "KKL", "PATRIK KOPULETÝ FT": "PKO", "LUKÁŠ DENER FT": "LDE", "DENISA SUCHÁ FT": "DES",
-        "MATĚJ BERAN PT": "MB4", "LUKÁŠ SVOBODA PT": "LSV", "TOMÁŠ FRYDRYCH FT": "TFY"
+        "MATĚJ BERAN PT": "MB4", "LUKÁŠ SVOBODA FT": "LSV", "TOMÁŠ FRYDRYCH FT": "TFY", "ŠTĚPÁN JIROUŠEK FT": "JIR"
     }
 
 def normalize_time(val):
