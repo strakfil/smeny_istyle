@@ -22,10 +22,10 @@ st.title("📅 iStyle Kalendář")
 if 'employee_map' not in st.session_state:
     st.session_state.employee_map = {
         "MAREK STRAKA FT": "MST", "ONDŘEJ TVRDÍK FT": "OTV", "ARPÁD NORCINI FT": "ANO",
-        "ELIŠKA DESÁKOVÁ FT": "EDE", "JAN BIŠKO FT": "JB2", "FILIP STRAKA FT": "FIS",
-        "MARIÁN DEBNÁR PT": "MDE", "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO","SAMUEL ŠVAJKA - 0,75": "SAS",
-        "KRIŠTOF KLUBICA FT": "KKL", "PATRIK KOPULETÝ FT": "PKO", "LUKÁŠ DENER FT": "LDE", "DENISA SUCHÁ FT": "DES",
-        "MATĚJ BERAN PT": "MB4", "LUKÁŠ SVOBODA FT": "LSV", "TOMÁŠ FRYDRYCH FT": "TFY", "ŠTĚPÁN JIROUŠEK FT": "JIR"
+        "ELIŠKA DESÁKOVÁ FT": "EDE", "FILIP STRAKA FT": "FIS",
+        "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO","SAMUEL ŠVAJKA - 0,75": "SAS",
+        "DENISA SUCHÁ FT": "DES", "MATĚJ BERAN PT": "MB4", "ŠTĚPÁN JIROUŠEK FT": "JIR",
+        "Kateřina Olivová FT": "KAT", "Simona Klanicová FT": "SKL"
     }
 
 def normalize_time(val):
