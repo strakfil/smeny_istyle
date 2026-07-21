@@ -5,6 +5,7 @@ from numbers_parser import Document
 import io
 import tempfile
 import os
+import re
 
 # --- KONFIGURACE ---
 st.set_page_config(page_title="iStyle Kalendář", page_icon="📅", layout="centered")
@@ -19,14 +20,23 @@ st.markdown("""
 
 st.title("📅 iStyle Kalendář")
 
+# --- FUNKCE PRO SJEDNOCENÍ TVARU JMEN ---
+def normalize_name(name):
+    name = str(name).upper()
+    name = name.replace('-', ' ') # Nahradí pomlčky mezerou
+    name = re.sub(r'\s+', ' ', name).strip() # Odstraní vícenásobné mezery a mezery na okrajích
+    return name
+
 if 'employee_map' not in st.session_state:
-    st.session_state.employee_map = {
+    raw_map = {
         "MAREK STRAKA FT": "MST", "ONDŘEJ TVRDÍK FT": "OTV", "ARPÁD NORCINI FT": "ANO",
         "ELIŠKA DESÁKOVÁ FT": "EDE", "FILIP STRAKA FT": "FIS",
-        "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO","SAMUEL ŠVAJKA - 0,75": "SAS",
+        "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO","SAMUEL ŠVAJKA 0,75": "SAS",
         "DENISA SUCHÁ FT": "DES", "MATĚJ BERAN PT": "MB4", "ŠTĚPÁN JIROUŠEK FT": "JIR",
         "Kateřina Olivová FT": "KAT", "Simona Klanicová FT": "SKL"
     }
+    # Uložení do session state s již "očištěnými" klíči pomocí nové funkce
+    st.session_state.employee_map = {normalize_name(k): v for k, v in raw_map.items()}
 
 def normalize_time(val):
     if pd.isna(val) or val == "" or val is None: return None
@@ -52,8 +62,14 @@ if uploaded_file:
             sheet_names = [s.name for s in doc.sheets]
             selected_sheet_name = st.selectbox("📅 Vyberte měsíc:", sheet_names)
             sheet = doc.sheets[selected_sheet_name]
-            table = sheet.tables[0]
-            df_raw = pd.DataFrame(table.rows(values_only=True))
+            
+            # OPRAVA: Automaticky vybere největší tabulku na listu (ignoruje legendy barev)
+            largest_table = sheet.tables[0]
+            for t in sheet.tables:
+                if len(t.rows(values_only=True)) > len(largest_table.rows(values_only=True)):
+                    largest_table = t
+            
+            df_raw = pd.DataFrame(largest_table.rows(values_only=True))
             os.unlink(tmp_path)
         else:
             xl = pd.ExcelFile(uploaded_file)
@@ -66,6 +82,9 @@ if uploaded_file:
             df = df_raw.copy()
             df.columns = [str(c).strip() if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[row_names_index])]
             df = df.iloc[row_names_index + 1:].reset_index(drop=True)
+            
+            # OPRAVA OŠETŘENÍ DNÍ: Odstranění prázdných řádků podle sloupce s datumy
+            df = df.dropna(subset=[df.columns[0]])
 
             all_relevant_columns = []
             for i, col_name in enumerate(df.columns):
@@ -100,7 +119,10 @@ if uploaded_file:
                 target_columns = all_relevant_columns
                 with st.expander("👤 Kontrola zkratek týmu"):
                     for col_idx, full_name in target_columns:
-                        name_key = full_name.upper()
+                        
+                        # POUŽITÍ NORMALIZACE JMEN PŘI KONTROLE ZKRATEK
+                        name_key = normalize_name(full_name) 
+                        
                         if name_key not in st.session_state.employee_map:
                             abbr = st.text_input(f"Zkratka pro: {full_name}", key=f"k_{col_idx}").strip().upper()
                             if abbr: st.session_state.employee_map[name_key] = abbr
@@ -116,7 +138,10 @@ if uploaded_file:
                     dt_val = pd.to_datetime(row.iloc[0], errors='coerce')
                     if pd.isna(dt_val): continue
                     for col_idx, full_name in target_columns:
-                        summary = custom_name_map.get(full_name.upper()) if mode == "Individuální" else st.session_state.employee_map.get(full_name.upper())
+                        
+                        # POUŽITÍ NORMALIZACE PŘI HLEDÁNÍ VE SLOVNÍKU PRO EXPORT
+                        summary = custom_name_map.get(full_name.upper()) if mode == "Individuální" else st.session_state.employee_map.get(normalize_name(full_name))
+                        
                         if summary:
                             t_s, t_e = normalize_time(row.iloc[col_idx]), normalize_time(row.iloc[col_idx+1]) if (col_idx+1) < len(row) else None
                             if t_s and t_e:
