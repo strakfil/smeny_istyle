@@ -30,10 +30,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Screenshots
-
-*(Add screenshots here)*
-
 ## Contributing
 
 Contributions, issues and feature requests are welcome.
