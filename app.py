@@ -10,7 +10,7 @@ import re
 # --- KONFIGURACE ---
 st.set_page_config(page_title="iStyle Kalendář", page_icon="📅", layout="centered")
 
-# CSS pro úpravu vzhledu (volitelné - zjemní okraje)
+# CSS pro úpravu vzhledu
 st.markdown("""
     <style>
     .stSecondaryButton { border-radius: 20px; }
@@ -23,17 +23,27 @@ st.title("📅 iStyle Kalendář")
 # --- FUNKCE PRO SJEDNOCENÍ TVARU JMEN ---
 def normalize_name(name):
     name = str(name).upper()
+    name = name.replace('\n', ' ').replace('\r', ' ') # Odstraní odřádkování (Alt+Enter v buňce)
     name = name.replace('-', ' ') # Nahradí pomlčky mezerou
-    name = re.sub(r'\s+', ' ', name).strip() # Odstraní vícenásobné mezery a mezery na okrajích
+    name = re.sub(r'\s+', ' ', name).strip() # Odstraní vícenásobné mezery a okraje
     return name
 
 if 'employee_map' not in st.session_state:
     raw_map = {
+        # Správná jména
         "MAREK STRAKA FT": "MST", "ONDŘEJ TVRDÍK FT": "OTV", "ARPÁD NORCINI FT": "ANO",
         "ELIŠKA DESÁKOVÁ FT": "EDE", "FILIP STRAKA FT": "FIS",
-        "MICHAL KLUSÁK FT": "MKK","RADEK BOUMA FT": "RBO","SAMUEL ŠVAJKA 0,75": "SAS",
+        "MICHAL KLUSÁK FT": "MKK", "RADEK BOUMA FT": "RBO", "SAMUEL ŠVAJKA 0,75": "SAS",
         "DENISA SUCHÁ FT": "DES", "MATĚJ BERAN PT": "MB4", "ŠTĚPÁN JIROUŠEK FT": "JIR",
-        "Kateřina Olivová FT": "KAT", "Simona Klanicová FT": "SKL"
+        "KATEŘINA OLIVOVÁ FT": "KAT", "SIMONA KLANICOVÁ FT": "SKL", 
+        "MARTIN PROCHÁZKA FT": "MPR", "KRISTIÁN HORÁK NOVÁČEK OVA": "KHO",
+
+        # Zkomoleniny vzniklé chybou knihovny numbers-parser (ztráta diakritiky)
+        "D NORCINI FT": "ANO",
+        "KA DES": "EDE",
+        "MICHAL KLUS K FT": "MKK",
+        "MARTIN PROCH ZKA FT": "MPR",
+        "KRISTI N HOR K NOV EK OVA": "KHO"
     }
     # Uložení do session state s již "očištěnými" klíči pomocí nové funkce
     st.session_state.employee_map = {normalize_name(k): v for k, v in raw_map.items()}
@@ -63,7 +73,7 @@ if uploaded_file:
             selected_sheet_name = st.selectbox("📅 Vyberte měsíc:", sheet_names)
             sheet = doc.sheets[selected_sheet_name]
             
-            # OPRAVA: Automaticky vybere největší tabulku na listu (ignoruje legendy barev)
+            # OPRAVA 1: Automaticky vybere největší tabulku na listu (ignoruje legendy)
             largest_table = sheet.tables[0]
             for t in sheet.tables:
                 if len(t.rows(values_only=True)) > len(largest_table.rows(values_only=True)):
@@ -76,14 +86,21 @@ if uploaded_file:
             selected_sheet_name = st.selectbox("📅 Vyberte měsíc:", xl.sheet_names)
             df_raw = xl.parse(selected_sheet_name, header=None)
 
-        # --- NASTAVENÍ HLAVIČKY (ŘÁDEK 1) ---
+        # --- DYNAMICKÉ NASTAVENÍ HLAVIČKY (ŘÁDEK SE JMÉNY) ---
         row_names_index = 1 
+        for idx, row in df_raw.head(10).iterrows():
+            # Kód vyhledá řádek, který obsahuje FT nebo PT (bezpečnější než fixní řádek 2)
+            row_str = " ".join([str(val) for val in row.values if pd.notna(val)]).upper()
+            if "FT" in row_str or "PT" in row_str:
+                row_names_index = idx
+                break
+
         if len(df_raw) > row_names_index:
             df = df_raw.copy()
-            df.columns = [str(c).strip() if c is not None else f"Empty_{i}" for i, c in enumerate(df.iloc[row_names_index])]
+            df.columns = [str(c).strip() if pd.notna(c) else f"Empty_{i}" for i, c in enumerate(df.iloc[row_names_index])]
             df = df.iloc[row_names_index + 1:].reset_index(drop=True)
             
-            # OPRAVA OŠETŘENÍ DNÍ: Odstranění prázdných řádků podle sloupce s datumy
+            # OPRAVA 2: Odstranění prázdných řádků podle sloupce s datumy (řeší 30/31 dní)
             df = df.dropna(subset=[df.columns[0]])
 
             all_relevant_columns = []
