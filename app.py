@@ -36,14 +36,14 @@ if 'employee_map' not in st.session_state:
         "MICHAL KLUSÁK FT": "MKK", "RADEK BOUMA FT": "RBO", "SAMUEL ŠVAJKA 0,75": "SAS",
         "DENISA SUCHÁ FT": "DES", "MATĚJ BERAN PT": "MB4", "ŠTĚPÁN JIROUŠEK FT": "JIR",
         "KATEŘINA OLIVOVÁ FT": "KAT", "SIMONA KLANICOVÁ FT": "SKL", 
-        "MARTIN PROCHÁZKA FT": "MPR", "KRISTIÁN HORÁK NOVÁČEK OVA": "KHO",
+        "MARTIN PROCHÁZKA FT": "MP2", "KRISTIÁN HORÁK NOVÁČEK OVA": "KRISTIÁN HORÁK NOVÁČEK OVA",
 
         # Zkomoleniny vzniklé chybou knihovny numbers-parser (ztráta diakritiky)
         "D NORCINI FT": "ANO",
         "KA DES": "EDE",
         "MICHAL KLUS K FT": "MKK",
-        "MARTIN PROCH ZKA FT": "MPR",
-        "KRISTI N HOR K NOV EK OVA": "KHO"
+        "MARTIN PROCH ZKA FT": "MP2",
+        "KRISTI N HOR K NOV EK OVA": "KRISTIÁN HORÁK NOVÁČEK OVA"
     }
     # Uložení do session state s již "očištěnými" klíči pomocí nové funkce
     st.session_state.employee_map = {normalize_name(k): v for k, v in raw_map.items()}
