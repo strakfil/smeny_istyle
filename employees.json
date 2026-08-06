@@ -1,20 +1,104 @@
 [
-  {"abbr": "MST", "names": ["MAREK STRAKA FT"]},
-  {"abbr": "OTV", "names": ["ONDŘEJ TVRDÍK FT"]},
-  {"abbr": "ANO", "names": ["ARPÁD NORCINI FT"]},
-  {"abbr": "EDE", "names": ["ELIŠKA DESÁKOVÁ FT"]},
-  {"abbr": "FIS", "names": ["FILIP STRAKA FT"]},
-  {"abbr": "MKK", "names": ["MICHAL KLUSÁK FT"]},
-  {"abbr": "RBO", "names": ["RADEK BOUMA FT"]},
-  {"abbr": "SAS", "names": ["SAMUEL ŠVAJKA PT"]},
-  {"abbr": "DES", "names": ["DENISA SUCHÁ FT"]},
-  {"abbr": "MB4", "names": ["MATĚJ BERAN PT"]},
-  {"abbr": "JIR", "names": ["ŠTĚPÁN JIROUŠEK FT"]},
-  {"abbr": "KAT", "names": ["KATEŘINA OLIVOVÁ FT"]},
-  {"abbr": "SKL", "names": ["SIMONA KLANICOVÁ FT"]},
-  {"abbr": "NIK", "names": ["NICOLE KRÁTKOVÁ PT"]},
-  {"abbr": "LUV", "names": ["LUCIE VILKUSOVÁ FT"]},
-  {"abbr": "LRI", "names": ["LUKÁŠ RIŠKA FT"]},
-  {"abbr": "MIM", "names": ["MAREK MIKULÍK FT"]},
-  {"abbr": "KRH", "names": ["KRISTIÁN HORÁK FT"]}
+  {
+    "abbr": "MST",
+    "names": [
+      "MAREK STRAKA FT"
+    ]
+  },
+  {
+    "abbr": "OTV",
+    "names": [
+      "ONDŘEJ TVRDÍK FT"
+    ]
+  },
+  {
+    "abbr": "ANO",
+    "names": [
+      "ARPÁD NORCINI FT"
+    ]
+  },
+  {
+    "abbr": "EDE",
+    "names": [
+      "ELIŠKA DESÁKOVÁ FT"
+    ]
+  },
+  {
+    "abbr": "FIS",
+    "names": [
+      "FILIP STRAKA FT"
+    ]
+  },
+  {
+    "abbr": "MKK",
+    "names": [
+      "MICHAL KLUSÁK FT"
+    ]
+  },
+  {
+    "abbr": "RBO",
+    "names": [
+      "RADEK BOUMA FT"
+    ]
+  },
+  {
+    "abbr": "SAS",
+    "names": [
+      "SAMUEL ŠVAJKA PT"
+    ]
+  },
+  {
+    "abbr": "DES",
+    "names": [
+      "DENISA SUCHÁ FT"
+    ]
+  },
+  {
+    "abbr": "MB4",
+    "names": [
+      "MATĚJ BERAN PT"
+    ]
+  },
+  {
+    "abbr": "JIR",
+    "names": [
+      "ŠTĚPÁN JIROUŠEK FT"
+    ]
+  },
+  {
+    "abbr": "KAT",
+    "names": [
+      "KATEŘINA OLIVOVÁ FT"
+    ]
+  },
+  {
+    "abbr": "SKL",
+    "names": [
+      "SIMONA KLANICOVÁ FT"
+    ]
+  },
+  {
+    "abbr": "LUV",
+    "names": [
+      "LUCIE VILKUSOVÁ FT"
+    ]
+  },
+  {
+    "abbr": "LRI",
+    "names": [
+      "LUKÁŠ RIŠKA FT"
+    ]
+  },
+  {
+    "abbr": "MIM",
+    "names": [
+      "MAREK MIKULÍK FT"
+    ]
+  },
+  {
+    "abbr": "KRH",
+    "names": [
+      "KRISTIÁN HORÁK FT"
+    ]
+  }
 ]
